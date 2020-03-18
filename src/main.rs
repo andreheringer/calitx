@@ -1,29 +1,14 @@
+use std::process;
 use std::env;
-mod logparse;
+use std::error::Error;
+mod config;
+mod tsparse;
 
-struct Config {
-    num_threads: u32,
-    log_filename: String
+fn main() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = env::args().collect();
+    let conf = config::Config::new(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+    tsparse::parse_time_series(conf.entry_file_path)
 }
-
-impl Config {
-    fn new(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3{
-            return Err("not enought arguments")
-        }
-
-        let num_threads = args[1].parse::<u32>().unwrap();
-        let log_filename = args[2].clone();
-        
-        Ok(Config { num_threads, log_filename })
-    }
-}
-
-fn main() -> std::io::Result<()> {
-    for line in logparse::BufReader::open("Cargo.toml")? {
-        println!("{}", line?.trim());
-    }
-
-    Ok(())
-}
-
