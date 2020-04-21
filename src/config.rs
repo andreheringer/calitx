@@ -36,7 +36,7 @@ impl Config {
         opts.optflag("", "null", "Empty strings are set to null.");
         opts.optflag("", "no-keyed", "Generate output as keyed JSON.");
         opts.optflag("h", "help", "Prints this help menu.");
-        opts.optopt("", "chunks", "Chunk size for compression", "CHUNK_SIZE");
+        opts.optopt("", "batch", "batch time window for compression", "BATCH_SIZE");
 
         let matches: Matches = opts.parse(&args[1..])?;
 
@@ -51,14 +51,14 @@ impl Config {
             .unwrap_or(String::from_str("out.json")?);
         let num_threads = matches
             .opt_str("n")
-            .unwrap_or(String::from_str("out.json")?)
+            .unwrap_or(String::from_str("1")?)
             .parse::<u32>()?;
         let is_keyed = !matches.opt_present("no-keyed");
         let is_nulled = matches.opt_present("null");
 
         let time_batch_size = Duration::seconds(
             matches
-                .opt_str("chunks")
+                .opt_str("batch")
                 .unwrap_or(String::from_str("7200")?)
                 .parse::<i64>()?
         );
