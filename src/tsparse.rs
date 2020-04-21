@@ -1,44 +1,73 @@
+extern crate chrono;
+extern crate serde;
 extern crate serde_json;
 
-use serde_json::Value as JsonValue;
+use chrono::Duration;
+use chrono::NaiveDateTime;
+use serde::Deserialize;
+use serde_json::Value;
 
 use std::error::Error;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
+
+mod date_serializer {
+
+    use chrono::{DateTime, NaiveDateTime, Utc};
+    use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+    const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
+
+    fn time_to_json(t: NaiveDateTime) -> String {
+        DateTime::<Utc>::from_utc(t, Utc).to_rfc3339()
+    }
+
+    pub fn serialize<S: Serializer>(
+        time: &NaiveDateTime,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        time_to_json(time.clone()).serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<NaiveDateTime, D::Error> {
+        let time: String = Deserialize::deserialize(deserializer)?;
+        Ok(NaiveDateTime::parse_from_str(&time, FORMAT).map_err(D::Error::custom)?)
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Datapoint {
+    #[serde(with = "date_serializer")]
+    pub date_time: NaiveDateTime,
+    pub value: Value,
+}
 
 #[derive(Debug)]
-pub struct TimeSerie {
-    datetime: String,
-    entry: String
+pub struct TimeSerie<'dp> {
+    time_batch_interval: Duration,
+    pub data_points: Vec<&'dp [Datapoint]>,
 }
 
-impl TimeSerie {
-    
-    fn new(datetime: String, entry: String) -> TimeSerie {
-        TimeSerie {
-            datetime: datetime,
-            entry: entry
+impl<'dp> TimeSerie<'dp> {
+    pub fn new(
+        raw_data_points: &'dp Vec<Datapoint>,
+        time_batch_interval: Duration,
+    ) -> Result<TimeSerie<'dp>, Box<dyn Error>> {
+        let mut data_points: Vec<&[Datapoint]> = Vec::new();
+        let mut start = 0;
+        for i in 0..raw_data_points.len() {
+            if raw_data_points[i]
+                .date_time
+                .signed_duration_since(raw_data_points[start].date_time)
+                > time_batch_interval
+            {
+                data_points.push(&raw_data_points[start..i - 1]);
+                start = i;
+            }
         }
-    }
-
-    pub fn parse_time_series<P: AsRef<Path>>(path: P) -> Result<Vec<TimeSerie>, Box<dyn Error>> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-    
-        let desirializer = serde_json::Deserializer::from_reader(reader);
-        let mut chunks: Vec<TimeSerie> = Vec::new();
-    
-        for value in desirializer.into_iter::<JsonValue>() {
-            let res = value.unwrap_or_else(|_err| {
-                panic!("Something went wrong.");
-            });
-            chunks.push(TimeSerie::new(res["datetime"].to_string(), res["entry"].to_string()));
-        }
-    
-        Ok(chunks)
-        
+        Ok(TimeSerie {
+            time_batch_interval,
+            data_points,
+        })
     }
 }
-
-// TODO: Create a HashMap that segments the input file in chunks of 2 hours
