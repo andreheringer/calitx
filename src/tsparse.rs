@@ -65,6 +65,9 @@ impl<'dp> TimeSerie<'dp> {
                 start = i;
             }
         }
+        if raw_data_points.len() > 0 {
+            data_points.push(&raw_data_points[start..]);
+        }
         Ok(TimeSerie {
             time_batch_interval,
             data_points,
