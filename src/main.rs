@@ -16,6 +16,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cfg = Config::new(&args)?;
     let input_file = File::open(cfg.input_file_path)?;
     let reader = BufReader::new(input_file);
-    let r = compress::from_reader(reader, cfg.time_batch_size)?;
+    let r = compress::from_reader(reader, 7200)?;
     Ok(())
 }

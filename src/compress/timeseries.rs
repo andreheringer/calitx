@@ -54,15 +54,19 @@ impl<'dp> TimeSerie<'dp> {
         time_batch_interval: Duration,
     ) -> Result<TimeSerie<'dp>, Box<dyn Error>> {
         let mut data_points: Vec<&[DateDataPoint]> = Vec::new();
+        let footer = raw_data_points[0]
+            .date_time
+            .clone()
+            .date()
+            .and_hms(0, 0, 0)
+            .checked_add_signed(time_batch_interval)
+            .unwrap();
         let mut start = 0;
         for i in 0..raw_data_points.len() {
-            if raw_data_points[i]
-                .date_time
-                .signed_duration_since(raw_data_points[start].date_time)
-                >= time_batch_interval
-            {
+            if raw_data_points[i].date_time.signed_duration_since(footer) >= Duration::zero() {
                 data_points.push(&raw_data_points[start..i]);
                 start = i;
+                footer.checked_add_signed(time_batch_interval);
             }
         }
         if raw_data_points.len() > 0 {
