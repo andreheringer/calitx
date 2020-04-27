@@ -36,7 +36,7 @@ mod date_serializer {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Datapoint {
+pub struct DateDataPoint {
     #[serde(with = "date_serializer")]
     pub date_time: NaiveDateTime,
     pub value: Value,
@@ -44,24 +44,24 @@ pub struct Datapoint {
 
 #[derive(Debug)]
 pub struct TimeSerie<'dp> {
-    time_batch_interval: Duration,
-    pub data_points: Vec<&'dp [Datapoint]>,
+    pub time_batch_interval: Duration,
+    pub data_points: Vec<&'dp [DateDataPoint]>,
 }
 
 impl<'dp> TimeSerie<'dp> {
     pub fn new(
-        raw_data_points: &'dp Vec<Datapoint>,
+        raw_data_points: &'dp Vec<DateDataPoint>,
         time_batch_interval: Duration,
     ) -> Result<TimeSerie<'dp>, Box<dyn Error>> {
-        let mut data_points: Vec<&[Datapoint]> = Vec::new();
+        let mut data_points: Vec<&[DateDataPoint]> = Vec::new();
         let mut start = 0;
         for i in 0..raw_data_points.len() {
             if raw_data_points[i]
                 .date_time
                 .signed_duration_since(raw_data_points[start].date_time)
-                > time_batch_interval
+                >= time_batch_interval
             {
-                data_points.push(&raw_data_points[start..i - 1]);
+                data_points.push(&raw_data_points[start..i]);
                 start = i;
             }
         }
