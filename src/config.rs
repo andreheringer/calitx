@@ -36,7 +36,12 @@ impl Config {
         opts.optflag("", "null", "Empty strings are set to null.");
         opts.optflag("", "no-keyed", "Generate output as keyed JSON.");
         opts.optflag("h", "help", "Prints this help menu.");
-        opts.optopt("", "batch", "batch time window for compression", "BATCH_SIZE");
+        opts.optopt(
+            "",
+            "batch",
+            "batch time window for compression",
+            "BATCH_SIZE",
+        );
 
         let matches: Matches = opts.parse(&args[1..])?;
 
@@ -60,7 +65,7 @@ impl Config {
             matches
                 .opt_str("batch")
                 .unwrap_or(String::from_str("7200")?)
-                .parse::<i64>()?
+                .parse::<i64>()?,
         );
 
         if !(input_file_path.contains(".json") || input_file_path.contains(".csv")) {
