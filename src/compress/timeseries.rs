@@ -9,6 +9,8 @@ use serde_json::Value;
 
 use std::error::Error;
 
+use crate::errors::CompressionError;
+
 mod date_serializer {
 
     use chrono::{DateTime, NaiveDateTime, Utc};
@@ -44,37 +46,43 @@ pub struct DateDataPoint {
 
 #[derive(Debug)]
 pub struct TimeSerie<'dp> {
-    pub time_batch_interval: Duration,
-    pub data_points: Vec<&'dp [DateDataPoint]>,
+    pub batch_interval: Duration,
+    pub data_points: Vec<Option<&'dp [DateDataPoint]>>,
+    pub start_date: NaiveDateTime,
 }
 
 impl<'dp> TimeSerie<'dp> {
     pub fn new(
-        raw_data_points: &'dp Vec<DateDataPoint>,
-        time_batch_interval: Duration,
+        raw: &'dp Vec<DateDataPoint>,
+        batch_interval: Duration,
     ) -> Result<TimeSerie<'dp>, Box<dyn Error>> {
-        let mut data_points: Vec<&[DateDataPoint]> = Vec::new();
-        let footer = raw_data_points[0]
-            .date_time
-            .clone()
-            .date()
-            .and_hms(0, 0, 0)
-            .checked_add_signed(time_batch_interval)
-            .unwrap();
+        let start_date = raw[0].date_time.clone().date().and_hms(0, 0, 0);
+        let mut data_points: Vec<Option<&[DateDataPoint]>> = Vec::new();
+        let mut footer = start_date.checked_add_signed(batch_interval).unwrap();
         let mut start = 0;
-        for i in 0..raw_data_points.len() {
-            if raw_data_points[i].date_time.signed_duration_since(footer) >= Duration::zero() {
-                data_points.push(&raw_data_points[start..i]);
+
+        for i in 0..raw.len() {
+            while raw[start].date_time.signed_duration_since(footer) >= Duration::zero() {
+                data_points.push(None);
+                // TODO: Remove this unwrap
+                footer = footer.checked_add_signed(batch_interval).unwrap();
+            }
+
+            if raw[i].date_time.signed_duration_since(footer) >= Duration::zero() {
+                data_points.push(Some(&raw[start..i - 1]));
                 start = i;
-                footer.checked_add_signed(time_batch_interval);
+                // TODO: Remove this unwrap
+                footer = footer.checked_add_signed(batch_interval).unwrap();
             }
         }
-        if raw_data_points.len() > 0 {
-            data_points.push(&raw_data_points[start..]);
+        if raw.len() > 0 {
+            data_points.push(Some(&raw[start..]));
         }
+
         Ok(TimeSerie {
-            time_batch_interval,
+            batch_interval,
             data_points,
+            start_date,
         })
     }
 }
