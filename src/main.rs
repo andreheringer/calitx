@@ -1,6 +1,6 @@
+mod compress;
 mod config;
 mod errors;
-mod compress;
 
 extern crate serde_json;
 
