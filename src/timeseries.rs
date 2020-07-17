@@ -2,14 +2,13 @@ extern crate chrono;
 extern crate serde;
 extern crate serde_json;
 
+use crate::errors::CompressionError;
+
 use chrono::Duration;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 use serde_json::Value;
-
 use std::error::Error;
-
-use crate::errors::CompressionError;
 
 mod date_serializer {
 
@@ -37,11 +36,13 @@ mod date_serializer {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+//#[serde(rename_all = "camelCase")]
 pub struct DateDataPoint {
     #[serde(with = "date_serializer")]
     pub date_time: NaiveDateTime,
-    pub value: Value,
+    #[serde(with = "date_serializer")]
+    pub tpep_dropoff_datetime: NaiveDateTime,
+    pub passenger_count: i64,
 }
 
 #[derive(Debug)]

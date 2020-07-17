@@ -51,9 +51,7 @@ impl Config {
             matches.free[0].clone()
         };
 
-        let output_file_path = matches
-            .opt_str("o")
-            .unwrap_or(String::from_str("out.json")?);
+        let output_file_path = matches.opt_str("o").unwrap_or(String::from_str("out")?);
         let num_threads = matches
             .opt_str("n")
             .unwrap_or(String::from_str("1")?)
