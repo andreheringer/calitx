@@ -2,12 +2,9 @@ extern crate chrono;
 extern crate serde;
 extern crate serde_json;
 
-use crate::errors::CompressionError;
-
 use chrono::Duration;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
-use serde_json::Value;
 use std::error::Error;
 
 mod date_serializer {
@@ -36,20 +33,22 @@ mod date_serializer {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-//#[serde(rename_all = "camelCase")]
 pub struct DateDataPoint {
     #[serde(with = "date_serializer")]
-    pub date_time: NaiveDateTime,
-    #[serde(with = "date_serializer")]
-    pub tpep_dropoff_datetime: NaiveDateTime,
-    pub passenger_count: i64,
+    pub time: NaiveDateTime,
+    pub value: f32,
+}
+
+#[derive(Debug)]
+pub struct TimeBatch<'dp> {
+    pub header: NaiveDateTime,
+    pub points: &'dp [DateDataPoint],
 }
 
 #[derive(Debug)]
 pub struct TimeSerie<'dp> {
     pub batch_interval: Duration,
-    pub data_points: Vec<Option<&'dp [DateDataPoint]>>,
-    pub start_date: NaiveDateTime,
+    pub batches: Vec<TimeBatch<'dp>>,
 }
 
 impl<'dp> TimeSerie<'dp> {
@@ -57,33 +56,31 @@ impl<'dp> TimeSerie<'dp> {
         raw: &'dp Vec<DateDataPoint>,
         batch_interval: Duration,
     ) -> Result<TimeSerie<'dp>, Box<dyn Error>> {
-        let start_date = raw[0].date_time.clone().date().and_hms(0, 0, 0);
-        let mut data_points: Vec<Option<&[DateDataPoint]>> = Vec::new();
-        let mut footer = start_date.checked_add_signed(batch_interval).unwrap();
-        let mut start = 0;
-
-        for i in 0..raw.len() {
-            while raw[start].date_time.signed_duration_since(footer) >= Duration::zero() {
-                data_points.push(None);
-                // TODO: Remove this unwrap
-                footer = footer.checked_add_signed(batch_interval).unwrap();
+        debug!("#### Building Time Series Chuncks...");
+        let mut batches: Vec<TimeBatch> = Vec::new();
+        let mut header = raw[0].time.clone().date().and_hms(0, 0, 0);
+        let mut p = 0;
+        while p < raw.len() {
+            while raw[p].time.signed_duration_since(header) > batch_interval {
+                header = header.checked_add_signed(batch_interval).unwrap();
             }
-
-            if raw[i].date_time.signed_duration_since(footer) >= Duration::zero() {
-                data_points.push(Some(&raw[start..i - 1]));
-                start = i;
-                // TODO: Remove this unwrap
-                footer = footer.checked_add_signed(batch_interval).unwrap();
+            debug!("Found a Header: {:?}", header);
+            let start = p;
+            let mut end = start;
+            while end < raw.len() && raw[end].time.signed_duration_since(header) <= batch_interval {
+                end += 1;
             }
-        }
-        if raw.len() > 0 {
-            data_points.push(Some(&raw[start..]));
+            debug!("Batch entries ranging from {:?} to {:?}", start, end - 1);
+            batches.push(TimeBatch {
+                header: header,
+                points: &raw[start..end],
+            });
+            p = end;
         }
 
         Ok(TimeSerie {
             batch_interval,
-            data_points,
-            start_date,
+            batches,
         })
     }
 }
