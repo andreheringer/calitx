@@ -13,8 +13,6 @@ pub struct Config {
     pub num_threads: u32,
     pub input_file_path: String,
     pub output_file_path: String,
-    pub is_nulled: bool,
-    pub is_keyed: bool,
     pub time_batch_size: Duration,
 }
 
@@ -33,8 +31,6 @@ impl Config {
             "Number of threads used for the file compression.",
             "NUM_THREADS",
         );
-        opts.optflag("", "null", "Empty strings are set to null.");
-        opts.optflag("", "no-keyed", "Generate output as keyed JSON.");
         opts.optflag("h", "help", "Prints this help menu.");
         opts.optopt(
             "",
@@ -56,8 +52,6 @@ impl Config {
             .opt_str("n")
             .unwrap_or(String::from_str("1")?)
             .parse::<u32>()?;
-        let is_keyed = !matches.opt_present("no-keyed");
-        let is_nulled = matches.opt_present("null");
 
         let time_batch_size = Duration::seconds(
             matches
@@ -66,9 +60,9 @@ impl Config {
                 .parse::<i64>()?,
         );
 
-        if !(input_file_path.contains(".json") || input_file_path.contains(".csv")) {
+        if !(input_file_path.contains(".json")) {
             return Err(Box::new(ConfigError::new(
-                "Input file must be either csv or json.",
+                "Input file must be json.",
             )));
         }
 
@@ -76,8 +70,6 @@ impl Config {
             num_threads,
             input_file_path,
             output_file_path,
-            is_nulled,
-            is_keyed,
             time_batch_size,
         })
     }
