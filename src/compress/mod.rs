@@ -1,4 +1,4 @@
-mod saru;
+mod rhesus;
 
 extern crate chrono;
 extern crate serde_json;
@@ -15,6 +15,6 @@ pub fn from_reader<R: BufRead>(
 ) -> Result<(), Box<dyn Error>> {
     let raw: Vec<DateDataPoint> = serde_json::from_reader(reader)?;
     info!("Starting Compression...");
-    let c = saru::compress(&raw, interval, out_file_name)?;
+    let c = rhesus::compress(&raw, interval, out_file_name)?;
     Ok(())
 }
