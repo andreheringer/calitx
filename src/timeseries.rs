@@ -9,11 +9,13 @@ use std::error::Error;
 
 mod date_serializer {
 
-    use chrono::{DateTime, NaiveDateTime, Utc};
-    use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+    use chrono::{NaiveDateTime};
+    use serde::{de::Error, Deserialize, Deserializer};
     const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
-    fn time_to_json(t: NaiveDateTime) -> String {
+    // If ever needed heres some ultility functions for serializing chrono's
+    // NaiveDateTime to json with serde
+/*     fn time_to_json(t: NaiveDateTime) -> String {
         DateTime::<Utc>::from_utc(t, Utc).to_rfc3339()
     }
 
@@ -22,7 +24,7 @@ mod date_serializer {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         time_to_json(time.clone()).serialize(serializer)
-    }
+    } */
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
