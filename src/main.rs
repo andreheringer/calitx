@@ -36,6 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     let input_file = File::open(cfg.input_file_path)?;
     let reader = BufReader::new(input_file);
-    compress::from_reader(reader, cfg.time_batch_size, cfg.output_file_path)?;
+    compress::rhesus_from_reader(reader, cfg.time_batch_size, cfg.output_file_path)?;
     Ok(())
 }

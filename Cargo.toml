@@ -13,3 +13,4 @@ chrono = {version = "0.4.11", features = ["serde"]}
 getopts = "0.2.21"
 simplelog = "^0.8.0"
 log = "0.4.11"
+bitvec = "0.17.4"
