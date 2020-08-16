@@ -1,7 +1,6 @@
 extern crate chrono;
 extern crate getopts;
 
-use chrono::Duration;
 use getopts::Matches;
 use getopts::Options;
 
@@ -13,7 +12,7 @@ pub struct Config {
     pub num_threads: u32,
     pub input_file_path: String,
     pub output_file_path: String,
-    pub time_batch_size: Duration,
+    pub time_batch_size: i64,
 }
 
 impl Config {
@@ -53,12 +52,11 @@ impl Config {
             .unwrap_or(String::from_str("1")?)
             .parse::<u32>()?;
 
-        let time_batch_size = Duration::seconds(
+        let time_batch_size = 
             matches
                 .opt_str("batch")
                 .unwrap_or(String::from_str("7200")?)
-                .parse::<i64>()?,
-        );
+                .parse::<i64>()?;
 
         if !(input_file_path.contains(".json")) {
             return Err(Box::new(ConfigError::new(

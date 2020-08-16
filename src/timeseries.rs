@@ -15,7 +15,8 @@ mod date_serializer {
 
     // If ever needed heres some ultility functions for serializing chrono's
     // NaiveDateTime to json with serde
-/*     fn time_to_json(t: NaiveDateTime) -> String {
+    /*     
+    fn time_to_json(t: NaiveDateTime) -> String {
         DateTime::<Utc>::from_utc(t, Utc).to_rfc3339()
     }
 
@@ -74,7 +75,7 @@ impl<'dp> TimeSerie<'dp> {
             }
             debug!("Batch entries ranging from {:?} to {:?}", start, end - 1);
             batches.push(TimeBatch {
-                header: header,
+                header,
                 points: &raw[start..end],
             });
             p = end;
