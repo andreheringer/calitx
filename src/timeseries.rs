@@ -39,7 +39,7 @@ mod date_serializer {
 pub struct DateDataPoint {
     #[serde(with = "date_serializer")]
     pub time: NaiveDateTime,
-    pub value: f32,
+    pub value: f64,
 }
 
 #[derive(Debug)]
