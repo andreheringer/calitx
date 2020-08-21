@@ -8,12 +8,12 @@ extern crate serde_json;
 extern crate log;
 extern crate simplelog;
 
+use compress::Gorilla;
 use config::Config as RstzConfig;
 use simplelog::*;
 use std::env;
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
 
 fn main() -> Result<(), Box<dyn Error>> {
     CombinedLogger::init(vec![
@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         cfg.output_file_path
     );
     let input_file = File::open(cfg.input_file_path)?;
-    let reader = BufReader::new(input_file);
-    compress::rhesus_from_reader(reader, cfg.time_batch_size, cfg.output_file_path)?;
+    let res = input_file.compress(cfg.output_file_path, cfg.time_batch_size)?;
+    println!("{:?}", res);
     Ok(())
 }

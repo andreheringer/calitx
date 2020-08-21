@@ -32,11 +32,11 @@ pub struct CompressionError {
 }
 
 impl CompressionError {
-    pub fn new(msg: &str) -> CompressionError {
+/*     pub fn new(msg: &str) -> CompressionError {
         CompressionError {
             details: msg.to_string(),
         }
-    }
+    } */
 }
 
 impl fmt::Display for CompressionError {
