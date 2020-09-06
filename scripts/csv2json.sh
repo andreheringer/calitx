@@ -15,7 +15,7 @@ SEP=","
 data=$(sed '/^$/d' "${input}")
 line_count=$(printf "${data}" | wc -l)
 
-printf "[\n"
+
 row=0
 while IFS=$'\n\r' read -r line; do
     if [[ ${row} -eq 0 ]]; then
@@ -47,8 +47,8 @@ while IFS=$'\n\r' read -r line; do
             [[ ${col} -lt ${#head_items[@]} ]] && printf ",\n" || printf "\n"
         done
         printf "\t}"
-        [[ ${row} -lt ${line_count} ]] && printf ",\n" || printf "\n"
+        [[ ${row} -lt ${line_count} ]] && printf "\n" || printf "\n"
     fi
     (( row++ ))
 done <<< "${data}"
-printf "]"
+
