@@ -37,7 +37,7 @@ fn compress_batch(
 
     for i in 0..points.len() {
         if i == 0 {
-            let delta = points[0].time.signed_duration_since(header).num_seconds();
+            let delta = points[0].timestamp.signed_duration_since(header).num_seconds();
             batch.append(&mut BitVec::<Msb0, u8>::from_slice(
                 &(delta as i16).to_be_bytes(),
             ));
@@ -47,8 +47,8 @@ fn compress_batch(
             last_value = floating_xor(0.0, points[0].value);
         } else {
             let delta = points[i]
-                .time
-                .signed_duration_since(points[i - 1].time)
+                .timestamp
+                .signed_duration_since(points[i - 1].timestamp)
                 .num_seconds();
             let value = floating_xor(points[i - 1].value, points[i].value);
             append_delta(&mut batch, delta - last_delta);

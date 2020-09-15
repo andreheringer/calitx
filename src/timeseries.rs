@@ -38,7 +38,7 @@ mod date_serializer {
 #[derive(Deserialize, Debug, Clone)]
 pub struct DateDataPoint {
     #[serde(with = "date_serializer")]
-    pub time: NaiveDateTime,
+    pub timestamp: NaiveDateTime,
     pub value: f64,
 }
 
@@ -61,16 +61,17 @@ impl<'dp> TimeSerie<'dp> {
     ) -> Result<TimeSerie<'dp>, Box<dyn Error>> {
         debug!("#### Building Time Series Chuncks...");
         let mut batches: Vec<TimeBatch> = Vec::new();
-        let mut header = raw[0].time.clone().date().and_hms(0, 0, 0);
+        let mut header = raw[0].timestamp.clone().date().and_hms(0, 0, 0);
         let mut p = 0;
+        info!("Estimated entry size: {:?} bytes", raw.len() * 16);
         while p < raw.len() {
-            while raw[p].time.signed_duration_since(header) > batch_interval {
+            while raw[p].timestamp.signed_duration_since(header) > batch_interval {
                 header = header.checked_add_signed(batch_interval).unwrap();
             }
             debug!("Found a Header: {:?}", header);
             let start = p;
             let mut end = start;
-            while end < raw.len() && raw[end].time.signed_duration_since(header) <= batch_interval {
+            while end < raw.len() && raw[end].timestamp.signed_duration_since(header) <= batch_interval {
                 end += 1;
             }
             debug!("Batch entries ranging from {:?} to {:?}", start, end - 1);
