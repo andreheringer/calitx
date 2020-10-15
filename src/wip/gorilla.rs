@@ -53,7 +53,7 @@ fn compress_chunk<T: TimedDataPoint>(
                 .num_seconds();
             let value = floating_xor(
                 chunk.points[i - 1].value().as_f64().unwrap(),
-                chunk.points[i].value().as_f64().unwrap(),
+                chunk.points[i].value().as_f64().expect("None or bad formated value"),
             );
             append_delta(&mut compressed, delta - last_delta);
             append_value(&mut compressed, last_value, value);

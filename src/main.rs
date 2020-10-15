@@ -70,11 +70,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let input_file = File::open(cfg.input_file_path)?;
     let mut output_file = File::create(&cfg.output_file_path)?;
+    let dt0 = std::time::Instant::now();
     let res = wip::gorilla::compress_from_file::<DateTuple>(
         &input_file,
         &mut output_file,
         cfg.time_batch_size,
     );
-    info!("{:?}", res?);
+    let dt1 = dt0.elapsed();
+    info!("Executed compression in {:?} seconds resulting in a {:?} bytes", dt1, res?);
     Ok(())
 }
