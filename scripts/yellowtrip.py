@@ -1,6 +1,6 @@
 import pandas as pd
 
-df = pd.read_csv('data/yellow_tripdata_2019-04.csv')
+df = pd.read_csv('data/yellow-tri/yellow_tripdata_2019-04.csv')
 
 # Comment out the collumns you want to keep
 df.drop('VendorID', axis=1, inplace=True)
