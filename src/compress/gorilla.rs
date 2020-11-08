@@ -1,63 +1,67 @@
 extern crate bitvec;
 extern crate chrono;
+extern crate serde;
 
-use crate::compress::Gorilla;
-use crate::timeseries::{DateDataPoint, TimeSerie};
+use super::{TimeChunk, TimeSeries, TimedDataPoint};
 use bitvec::prelude::*;
-use chrono::{Duration, NaiveDateTime};
+use serde::de::Deserialize;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-impl Gorilla for File {
-    fn compress(&self, output_file_path: String, interval: i64) -> Result<usize, Box<dyn Error>> {
-        let reader = BufReader::new(self);
-        let mut written = 0;
-        let datapoints: Vec<DateDataPoint> = serde_json::from_reader(reader)?;
-        let interval_duration = Duration::seconds(interval);
-        let timeseries: TimeSerie = TimeSerie::new(&datapoints, interval_duration)?;
-        let mut output = File::create(output_file_path)?;
-        for batch in timeseries.batches {
-            let compressed = compress_batch(batch.points, batch.header)?;
-            written += output.write(compressed.as_slice())?;
-        }
-        Ok(written)
+pub fn compress_from_file<'de, T: TimedDataPoint + Deserialize<'de> + Clone>(
+    input_file: &File,
+    output_file: &mut File,
+    interval: i64,
+) -> Result<usize, Box<dyn Error>> {
+    let reader = BufReader::new(input_file);
+    let mut written = 0;
+    let timeseries = TimeSeries::<BufReader<&File>, T>::from_reader(interval, reader);
+    for chunk in timeseries {
+        let compressed = compress_chunk(chunk)?;
+        written += output_file.write(compressed.as_slice())?;
     }
+    Ok(written)
 }
 
-fn compress_batch(
-    points: &[DateDataPoint],
-    header: NaiveDateTime,
+fn compress_chunk<T: TimedDataPoint>(
+    chunk: TimeChunk<T>,
 ) -> Result<BitVec<Msb0, u8>, Box<dyn Error>> {
     let mut last_delta: i64 = 0;
     let mut last_value: f64 = 0.0;
 
-    let mut batch = BitVec::<Msb0, u8>::from_slice(&header.timestamp().to_be_bytes());
+    let mut compressed = BitVec::<Msb0, u8>::from_slice(&chunk.header.timestamp().to_be_bytes());
 
-    for i in 0..points.len() {
+    for i in 0..chunk.points.len() {
         if i == 0 {
-            let delta = points[0].timestamp.signed_duration_since(header).num_seconds();
-            batch.append(&mut BitVec::<Msb0, u8>::from_slice(
+            let delta = chunk.points[0]
+                .naivetime()
+                .signed_duration_since(chunk.header)
+                .num_seconds();
+            compressed.append(&mut BitVec::<Msb0, u8>::from_slice(
                 &(delta as i16).to_be_bytes(),
             ));
-            let value = points[0].value;
-            batch.append(&mut BitVec::<Msb0, u8>::from_slice(&value.to_be_bytes()));
+            let value = chunk.points[0].value().as_f64().unwrap();
+            compressed.append(&mut BitVec::<Msb0, u8>::from_slice(&value.to_be_bytes()));
             last_delta = delta;
-            last_value = floating_xor(0.0, points[0].value);
+            last_value = floating_xor(0.0, chunk.points[0].value().as_f64().unwrap());
         } else {
-            let delta = points[i]
-                .timestamp
-                .signed_duration_since(points[i - 1].timestamp)
+            let delta = chunk.points[i]
+                .naivetime()
+                .signed_duration_since(chunk.points[i - 1].naivetime())
                 .num_seconds();
-            let value = floating_xor(points[i - 1].value, points[i].value);
-            append_delta(&mut batch, delta - last_delta);
-            append_value(&mut batch, last_value, value);
+            let value = floating_xor(
+                chunk.points[i - 1].value().as_f64().unwrap(),
+                chunk.points[i].value().as_f64().expect("None or bad formated value"),
+            );
+            append_delta(&mut compressed, delta - last_delta);
+            append_value(&mut compressed, last_value, value);
             last_delta = delta;
             last_value = value;
         }
     }
-    Ok(batch)
+    Ok(compressed)
 }
 
 fn append_delta(vec: &mut BitVec<Msb0, u8>, delta: i64) {
@@ -109,7 +113,7 @@ fn tsdelta_encode(src: i64, encode: u8) -> BitVec<Msb0, u8> {
     }
     res.push(neg);
     res.reverse();
-    res
+    return res;
 }
 
 fn append_value(vec: &mut BitVec<Msb0, u8>, last_xor: f64, xor: f64) {
@@ -168,13 +172,13 @@ fn bitsvalue_encode(src: u64, last: u64, fit: bool) -> BitVec<Msb0, u8> {
         }
     }
     res.reverse();
-    res
+    return res;
 }
 
 fn floating_xor(last_value: f64, value: f64) -> f64 {
     let lv_bytes = last_value.to_bits();
     let v_bytes = value.to_bits();
-    f64::from_bits(lv_bytes ^ v_bytes)
+    return f64::from_bits(lv_bytes ^ v_bytes);
 }
 
 #[cfg(test)]

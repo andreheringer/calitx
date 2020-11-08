@@ -1,33 +1,97 @@
-mod gorilla;
-mod rhesus;
+pub mod gorilla;
 
 extern crate chrono;
+extern crate serde;
 extern crate serde_json;
 
-use std::error::Error;
+use chrono::Duration;
+use chrono::NaiveDateTime;
+use serde_json::de::{IoRead, StreamDeserializer};
+use serde_json::value::Value;
 
-pub trait Gorilla {
-    fn compress(&self, output_file_path: String, interval: i64) -> Result<usize, Box<dyn Error>>;
+pub trait TimedDataPoint {
+    fn naivetime(&self) -> NaiveDateTime;
+    fn value(&self) -> Value;
 }
 
-pub trait Rhesus {
-    fn compress(&self, output_file_path: String, interval: i64) -> Result<usize, Box<dyn Error>>;
+#[derive(Debug)]
+struct TimeChunk<T>
+where
+    T: TimedDataPoint,
+{
+    pub header: NaiveDateTime,
+    pub points: Vec<T>,
 }
 
-//Change implementation here to return the compressed vector
-// for streams.
-/* pub fn rhesus_from_reader<R: BufRead>(
-    reader: R,
+struct TimeSeries<'de, R: std::io::Read, D: serde::de::Deserialize<'de> + TimedDataPoint> {
+    stream_desirializer: StreamDeserializer<'de, IoRead<R>, D>,
     interval: Duration,
-    output_file_path: String,
-) -> Result<usize, Box<dyn Error>> {
+    iter_header: Option<NaiveDateTime>,
+    remender: Option<D>,
+}
 
-} */
+impl<'de, R, D> TimeSeries<'de, R, D>
+where
+    R: std::io::Read,
+    D: serde::de::Deserialize<'de> + TimedDataPoint,
+{
+    pub fn from_reader(interval_secs: i64, reader: R) -> Self {
+        let interval = Duration::seconds(interval_secs);
+        let stream_desirializer = serde_json::Deserializer::from_reader(reader).into_iter::<D>();
+        TimeSeries {
+            stream_desirializer,
+            interval,
+            iter_header: None,
+            remender: None,
+        }
+    }
+}
 
-//Change implementation here to return the compressed vector
-// for streams.
-/* pub fn gorilla_from_reader<R: BufRead>(
-    reader:
-) -> Result<usize, Box<dyn Error> {
+impl<'de, R, D> Iterator for TimeSeries<'de, R, D>
+where
+    R: std::io::Read,
+    D: serde::de::Deserialize<'de> + TimedDataPoint + Clone,
+{
+    type Item = TimeChunk<D>;
 
-} */
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.iter_header == None {
+            if let Some(first) = self.stream_desirializer.next() {
+                let res_first = match first {
+                    Ok(res) => res,
+                    Err(e) => panic!("Wrong format input {:?}", e),
+                };
+                self.iter_header = Some(res_first.naivetime().date().and_hms(0, 0, 0));
+                self.remender = Some(res_first);
+            }
+        }
+
+        if let Some(remender) = self.remender.clone() {
+            let mut header = self.iter_header.unwrap();
+            while remender.naivetime().signed_duration_since(header) > self.interval {
+                header = header.checked_add_signed(self.interval).unwrap();
+            }
+            let mut points: Vec<D> = Vec::new();
+            points.push(remender);
+            loop {
+                if let Some(res_point) = self.stream_desirializer.next() {
+                    let point = match res_point {
+                        Ok(res) => res,
+                        Err(e) => panic!("Wrong format input {:?}", e),
+                    };
+                    if point.naivetime().signed_duration_since(header) <= self.interval {
+                        points.push(point);
+                    } else {
+                        self.remender = Some(point);
+                        break;
+                    }
+                } else {
+                    self.remender = None;
+                    break;
+                }
+            }
+            return Some(TimeChunk { header, points });
+        }
+        return None;
+    }
+}
