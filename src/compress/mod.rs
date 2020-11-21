@@ -56,13 +56,9 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.iter_header == None {
-            if let Some(first) = self.stream_desirializer.next() {
-                let res_first = match first {
-                    Ok(res) => res,
-                    Err(e) => panic!("Wrong format input {:?}", e),
-                };
-                self.iter_header = Some(res_first.naivetime().date().and_hms(0, 0, 0));
-                self.remender = Some(res_first);
+            if let Some(Ok(first)) = self.stream_desirializer.next() {
+                self.iter_header = Some(first.naivetime().date().and_hms(0, 0, 0));
+                self.remender = Some(first);
             }
         }
 
