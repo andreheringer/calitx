@@ -1,27 +1,49 @@
+use std::rc::Rc;
 
-enum Node<K, T> {
-    Inner(InnerNode<K, T>),
-    Leaf(LeafNode<K, T>)
+mod node {
+
+    type ChdPtr = Option<Box<NodeType>>;
+
+    const MAX_CHILDREN_PER_NODE: usize = 60;
+
+    pub enum NodeType {
+        Node,
+        DataNode,
+    }
+
+    pub struct Node {
+        pub pidx: Option<usize>, //Index id in parent Node
+        value: String,
+        key: String,
+        children: [ChdPtr; MAX_CHILDREN_PER_NODE]
+    }
+
+    impl Node {
+        pub(crate) fn new(pidx: Option<usize>, key: &str, value: &str) -> Self {
+            Node {
+                pidx,
+                value: value.to_string(),
+                key: key.to_string(),
+                children: [None; MAX_CHILDREN_PER_NODE],
+            }
+        }
+    }
+
+    pub struct DataNode {
+        value: String
+    }
 }
 
-struct InnerNode<K, T> {
-    keys: Vec<K>,
-    children: Vec<Node<K, T>> 
+pub struct LazzyTree {
+    root: Rc<node::Node>,
+    sluggish: usize,
 }
 
-//Maybe think about this at a later momment
-type LeafLink<K, T> = Option<&LeafNode<K, T>>;
-
-struct LeafNode<K, T> {
-    kvs: Vec<KeyValuePair>,
-    next: LeafLink<K, T>, // Make all this ones None for now?
-}
-
-struct KeyValuePair<K, T> {
-    key: K,
-    value: T,
-}
-
-struct LazyTree<K, T> {
-
+impl LazzyTree {
+    pub fn new(key: &str, value: &str, sluggish: usize) -> Self {
+        LazzyTree {
+            root: Rc::new(node::Node::new(None, key, value)),
+            sluggish
+        }
+    }
 }
