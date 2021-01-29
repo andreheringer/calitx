@@ -54,3 +54,9 @@ impl From<std::io::Error> for RstzError {
         RstzError::StdIoError(e.to_string())
     }
 }
+
+impl RstzError {
+    pub fn new(msg: &str) -> RstzError {
+        RstzError::Message(msg.to_string())
+    }
+}

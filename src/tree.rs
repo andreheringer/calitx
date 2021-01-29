@@ -1,49 +1,115 @@
+extern crate chrono;
+
+use crate::errors::RstzError;
+use chrono::Duration;
+use node::KEY_BYTE_LENGHT;
+use node::{ChdPtr, Node, NodeType};
 use std::rc::Rc;
 
 mod node {
 
-    type ChdPtr = Option<Box<NodeType>>;
+    use crate::errors::RstzError;
 
-    const MAX_CHILDREN_PER_NODE: usize = 60;
+    pub type ChdPtr = Option<Box<NodeType>>;
+
+    const MAX_CHILDREN_PER_NODE: usize = 32; // Use module to fit the 254 possible results in a byte into 32.
+    pub const KEY_BYTE_LENGHT: usize = 16;
 
     pub enum NodeType {
-        Node,
-        DataNode,
+        TreeNode(Node),
+        LeafNode(DataNode),
     }
 
     pub struct Node {
         pub pidx: Option<usize>, //Index id in parent Node
-        value: String,
-        key: String,
-        children: [ChdPtr; MAX_CHILDREN_PER_NODE]
+        key: [u8; KEY_BYTE_LENGHT],
+        children: [ChdPtr; MAX_CHILDREN_PER_NODE],
     }
 
     impl Node {
-        pub(crate) fn new(pidx: Option<usize>, key: &str, value: &str) -> Self {
+        pub(crate) fn new(
+            pidx: Option<usize>,
+            key: [u8; KEY_BYTE_LENGHT],
+        ) -> Self {
             Node {
                 pidx,
-                value: value.to_string(),
-                key: key.to_string(),
-                children: [None; MAX_CHILDREN_PER_NODE],
+                key,
+                children: Default::default(),
             }
+        }
+
+        pub fn child_as_mut(&mut self, idx: usize) -> &mut ChdPtr {
+            &mut self.children[idx]
+        }
+
+        pub fn child_as_ref(&self, idx: usize) -> &ChdPtr {
+            &self.children[idx]
+        }
+
+        pub fn add_child(&mut self, child: NodeType, index: usize) -> Result<(), RstzError> {
+            if index >= MAX_CHILDREN_PER_NODE {
+                return Err(RstzError::new("Child index out of bounds"));
+            }
+            self.children[index] = Some(Box::new(child));
+            Ok(())
         }
     }
 
     pub struct DataNode {
-        value: String
+        value: String,
     }
 }
 
 pub struct LazzyTree {
-    root: Rc<node::Node>,
-    sluggish: usize,
+    root: Box<node::Node>,
+    timewindow: Duration,
 }
 
 impl LazzyTree {
-    pub fn new(key: &str, value: &str, sluggish: usize) -> Self {
+    pub fn new(
+        key: [u8; KEY_BYTE_LENGHT],
+        value: &str,
+        timewindow: Duration,
+    ) -> Self {
+        let root_node = Node::new(None, key);
+        
         LazzyTree {
-            root: Rc::new(node::Node::new(None, key, value)),
-            sluggish
+            root: Box::new(node::Node::new(None, key)),
+            timewindow,
         }
     }
+/*
+    pub fn insert(&mut self, key: [u8; KEY_BYTE_LENGHT], value: &str) -> Result<(), RstzError> {
+        let pidx = LazzyTree::keycmp(self.root.as_ref(), key);
+        LazzyTree::place(pidx, self.root.child_as_mut(pidx), key, value)
+    }
+
+     fn place(
+        pidx: usize,
+        ptr: &mut ChdPtr,
+        key: [u8; KEY_BYTE_LENGHT],
+        value: &str,
+    ) -> Result<(), RstzError> {
+        if let Some(child) = ptr {
+            match child.as_mut() {
+                NodeType::TreeNode(n) => {
+                    let npidx = LazzyTree::keycmp(n, key);
+                    LazzyTree::place(npidx, &mut n.children[npidx], key, value)?
+                }
+                NodeType::LeafNode(d) => {}
+            }
+        }
+        Ok(())
+    } 
+
+    fn keycmp(ptr: &Node, key: [u8; KEY_BYTE_LENGHT]) -> usize {
+        let mut res: usize = 0;
+        for i in 0..KEY_BYTE_LENGHT {
+            if ptr.key[i] != key[i] {
+                return res;
+            }
+            res += 1;
+        }
+        res
+    } */
 }
