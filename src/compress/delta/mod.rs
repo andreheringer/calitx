@@ -37,21 +37,6 @@ impl fmt::Display for Delta {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum Op {
-    Copy(usize, usize),
-    Insert(Vec<u8>),
-}
-
-impl fmt::Display for Op {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Op::Copy(offset, size) => write!(f, "Copy({}, {})", offset, size),
-            Op::Insert(values) => write!(f, "Insert {:?}", values),
-        }
-    }
-}
-
 impl Encode for Delta {
     fn enconde(&self) -> Vec<u8> {
         let low_bits = |v: usize| -> u8 { (v & MASK) as u8 };
@@ -71,6 +56,21 @@ impl Encode for Delta {
             buffer.extend(op.enconde());
         }
         buffer
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Op {
+    Copy(usize, usize),
+    Insert(Vec<u8>),
+}
+
+impl fmt::Display for Op {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Op::Copy(offset, size) => write!(f, "Copy({}, {})", offset, size),
+            Op::Insert(values) => write!(f, "Insert {:?}", values),
+        }
     }
 }
 
@@ -99,5 +99,4 @@ impl Encode for Op {
         }
     }
 }
-
 
