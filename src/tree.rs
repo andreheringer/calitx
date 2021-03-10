@@ -78,7 +78,8 @@ impl LazzyTree {
             timewindow,
         }
     }
-/*
+
+    /*
     pub fn insert(&mut self, key: [u8; KEY_BYTE_LENGHT], value: &str) -> Result<(), RstzError> {
         let pidx = LazzyTree::keycmp(self.root.as_ref(), key);
         LazzyTree::place(pidx, self.root.child_as_mut(pidx), key, value)
