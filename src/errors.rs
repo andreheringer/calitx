@@ -1,7 +1,6 @@
+use serde::{de, ser};
 use std;
 use std::fmt::{self, Display};
-
-use serde::{de, ser};
 
 pub type Result<T> = std::result::Result<T, RstzError>;
 
@@ -23,6 +22,7 @@ pub enum RstzError {
     // are specific to the format, in this case JSON.
     Eof,
     StdIoError(String),
+    NoneError,
 }
 
 impl ser::Error for RstzError {
@@ -43,6 +43,7 @@ impl Display for RstzError {
             RstzError::Message(msg) => formatter.write_str(msg),
             RstzError::Eof => formatter.write_str("unexpected end of input"),
             RstzError::StdIoError(msg) => formatter.write_str(msg),
+            RstzError::NoneError => formatter.write_str("Unespected option None value"),
         }
     }
 }
@@ -58,5 +59,9 @@ impl From<std::io::Error> for RstzError {
 impl RstzError {
     pub fn new(msg: &str) -> RstzError {
         RstzError::Message(msg.to_string())
+    }
+
+    pub fn from_none() -> RstzError {
+        RstzError::NoneError
     }
 }

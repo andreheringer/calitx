@@ -1,6 +1,7 @@
 extern crate chrono;
 
 use crate::errors::RstzError;
+use crate::events::DataPoint;
 use chrono::Duration;
 use node::KEY_BYTE_LENGHT;
 use node::{ChdPtr, Node, NodeType};
@@ -10,14 +11,14 @@ mod node {
 
     use crate::errors::RstzError;
 
-    pub type ChdPtr = Option<Box<NodeType>>;
+    pub(super) type ChdPtr = Option<Box<NodeType>>;
 
     const MAX_CHILDREN_PER_NODE: usize = 32; // Use module to fit the 254 possible results in a byte into 32.
     pub const KEY_BYTE_LENGHT: usize = 16;
 
     pub enum NodeType {
         TreeNode(Node),
-        LeafNode(DataNode),
+        LeafNode(TSNode),
     }
 
     pub struct Node {
@@ -55,8 +56,8 @@ mod node {
         }
     }
 
-    pub struct DataNode {
-        value: String,
+    pub struct TSNode {
+        ts: Vec<u8>,
     }
 }
 
