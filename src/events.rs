@@ -1,7 +1,3 @@
-extern crate chrono;
-extern crate fasthash;
-extern crate serde;
-extern crate serde_json;
 
 use chrono::{Date, DateTime, Utc};
 use serde::{Deserialize, Serialize};
