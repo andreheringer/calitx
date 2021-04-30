@@ -1,6 +1,5 @@
 extern crate bitvec;
 extern crate chrono;
-extern crate fasthash;
 extern crate serde;
 extern crate serde_json;
 
